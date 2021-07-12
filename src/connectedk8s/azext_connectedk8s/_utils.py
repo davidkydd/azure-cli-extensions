@@ -735,7 +735,7 @@ def collect_periscope_logs(resource_group_name, name, storage_account_name=None,
     if not storage_account_name or not sas_token:
         print('No storage account specified. Downloading logs to local machine.')
         apply_periscope_yaml(kubectl_prior, deployment_yaml, temp_yaml_file, temp_yaml_path)
-        copy_and_zip_periscope_files(kubectl_prior)
+        copy_and_archive_periscope_files(kubectl_prior)
         return
     readonly_sas_token = readonly_sas_token.strip('?')
 
@@ -832,7 +832,7 @@ def apply_periscope_yaml(kubectl_prior, deployment_yaml, temp_yaml_file, temp_ya
         os.remove(temp_yaml_path)
 
 
-def copy_and_zip_periscope_files(kubectl_prior):
+def copy_and_archive_periscope_files(kubectl_prior):
     periscope_files = []
     time.sleep(5)   
     subprocess_cmd = kubectl_prior + ["get", "pods", "-n", "aks-periscope", "-o", "wide", "--no-headers"]
