@@ -792,12 +792,13 @@ def apply_periscope_yaml(kubectl_prior, deployment_yaml, temp_yaml_file, temp_ya
             yaml_lines[index] = line + ' ' + container_logs
         if "DIAGNOSTIC_KUBEOBJECTS_LIST:" in line:
             yaml_lines[index] = line + ' ' + kube_objects
-        if "ENABLED_COLLECTORS:" in line:
-            yaml_lines[index] = '  ENABLED_COLLECTORS: dns containerlogscontainerd helm kubeobjects networkoutbound'
-        if "ENABLED_EXPORTERS:" in line:
-            yaml_lines[index] = '  ENABLED_EXPORTERS: azureblob localmachine'
-        if "ZIP_AND_EXPORT:" in line:
-            yaml_lines[index] = '  ZIP_AND_EXPORT: "true"'
+        # think we can just remove the below
+        # if "ENABLED_COLLECTORS:" in line:
+        #     yaml_lines[index] = '  ENABLED_COLLECTORS: dns containerlogscontainerd helm kubeobjects networkoutbound'
+        # if "ENABLED_EXPORTERS:" in line:
+        #     yaml_lines[index] = '  ENABLED_EXPORTERS: azureblob localmachine'
+        # if "ZIP_AND_EXPORT:" in line:
+        #     yaml_lines[index] = '  ZIP_AND_EXPORT: "true"'
 
     deployment_yaml = '\n'.join(yaml_lines)
 
@@ -851,7 +852,7 @@ def copy_and_zip_periscope_files(kubectl_prior):
         node = info[6]
         if status != "Running":
             continue
-        file = "periscope-logs-"+node
+        file = node + ".zip"
 
         subprocess_cmd = kubectl_prior + ["cp", "-n", "aks-periscope", pod+":"+file, file]
         subprocess.call(subprocess_cmd, stderr=subprocess.STDOUT)
