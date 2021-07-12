@@ -858,17 +858,16 @@ def copy_and_zip_periscope_files(kubectl_prior):
         subprocess.call(subprocess_cmd, stderr=subprocess.STDOUT)
         periscope_files.append(file)
     try:
-        periscope_zip = os.path.join(os.path.expanduser('~'), '.azure', 'periscope_output.tar.gz')
+        archive_zip = os.path.join(os.path.expanduser('~'), '.azure', 'periscope_output.tar.gz')
         periscope_log_path = os.path.join(os.path.expanduser('~'), '.azure')
         # Creating the .tar.gz for logs and deleting the actual log file
         import tarfile
-        with tarfile.open(periscope_zip , "w:gz") as tar:
-            for file in periscope_files:
-                zipfilename = file + '.zip'
-                shutil.make_archive(file, "zip", file)
-                tar.add(zipfilename, zipfilename)
-                shutil.rmtree(file)
-                os.remove(zipfilename)
+        with tarfile.open(archive_zip , "w:gz") as tar:
+            for zipFileName in periscope_files:
+                tar.add(zipFileName, zipFileName)
+        #once the .tar.gz archive is successfully created, delete the per-node .zips     
+        for zipFileName in periscope_files:
+            os.remove(zipFileName)
 
     except Exception as ex:
         logger.error("Error occured while archiving the periscope logs: {}".format(str(ex)))
