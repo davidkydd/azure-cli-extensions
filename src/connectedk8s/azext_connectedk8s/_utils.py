@@ -852,15 +852,15 @@ def copy_and_zip_periscope_files(kubectl_prior):
         node = info[6]
         if status != "Running":
             continue
-        file = node + ".zip"
+        zipFileName = node + ".zip"
 
-        subprocess_cmd = kubectl_prior + ["cp", "-n", "aks-periscope", pod+":"+file, file]
+        subprocess_cmd = kubectl_prior + ["cp", "-n", "aks-periscope", pod+":"+zipFileName, zipFileName]
         subprocess.call(subprocess_cmd, stderr=subprocess.STDOUT)
-        periscope_files.append(file)
+        periscope_files.append(zipFileName)
     try:
         archive_zip = os.path.join(os.path.expanduser('~'), '.azure', 'periscope_output.tar.gz')
         periscope_log_path = os.path.join(os.path.expanduser('~'), '.azure')
-        # Creating the .tar.gz for logs and deleting the actual log file
+        # Creating the .tar.gz for logs and deleting the per-node .zip files
         import tarfile
         with tarfile.open(archive_zip , "w:gz") as tar:
             for zipFileName in periscope_files:
