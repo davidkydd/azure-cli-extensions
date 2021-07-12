@@ -760,8 +760,12 @@ def collect_periscope_logs(resource_group_name, name, storage_account_name=None,
             yaml_lines[index] = line + ' ' + container_logs
         if "DIAGNOSTIC_KUBEOBJECTS_LIST" in line:
             yaml_lines[index] = line + ' ' + kube_objects
-        if "CLUSTER_TYPE" in line:
-            yaml_lines[index] = '  CLUSTER_TYPE: connectedCluster'
+        if "ENABLED_COLLECTORS:" in line:
+            yaml_lines[index] = '  ENABLED_COLLECTORS: dns containerlogscontainerd helm kubeobjects networkoutbound'
+        if "ENABLED_EXPORTERS:" in line:
+            yaml_lines[index] = '  ENABLED_EXPORTERS: azureblob localmachine'
+        if "ZIP_AND_EXPORT:" in line:
+            yaml_lines[index] = '  ZIP_AND_EXPORT: "true"'
 
     deployment_yaml = '\n'.join(yaml_lines)
 
