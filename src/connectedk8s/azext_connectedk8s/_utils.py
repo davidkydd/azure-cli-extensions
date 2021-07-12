@@ -730,7 +730,7 @@ def collect_periscope_logs(resource_group_name, name, storage_account_name=None,
     fd, temp_yaml_path = tempfile.mkstemp()
     temp_yaml_file = os.fdopen(fd, 'w+t')
     deployment_yaml = urlopen(
-        "https://raw.githubusercontent.com/Azure/aks-periscope/latest/deployment/aks-periscope.yaml").read().decode()
+         "https://raw.githubusercontent.com/davidkydd/aks-periscope/arc-mvp/deployment/aks-periscope-arc.yaml").read().decode()
     
     if not storage_account_name or not sas_token:
         print('No storage account specified. Downloading logs to local machine.')
@@ -754,9 +754,6 @@ def collect_periscope_logs(resource_group_name, name, storage_account_name=None,
         return
 
     sas_token = sas_token.strip('?')
-
-    deployment_yaml = urlopen(
-        "https://raw.githubusercontent.com/davidkydd/aks-periscope/arc-mvp/deployment/aks-periscope-arc.yaml").read().decode()
 
     deployment_yaml = deployment_yaml.replace("# <accountName, base64 encoded>",
                                               (base64.b64encode(bytes(storage_account_name, 'ascii'))).decode('ascii'))
