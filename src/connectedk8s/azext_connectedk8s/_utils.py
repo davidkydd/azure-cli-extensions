@@ -756,9 +756,9 @@ def collect_periscope_logs(resource_group_name, name, storage_account_name=None,
     kube_objects = "azure-arc/pod azure-arc/service azure-arc/deployment"
     yaml_lines = deployment_yaml.splitlines()
     for index, line in enumerate(yaml_lines):
-        if "DIAGNOSTIC_CONTAINERLOGS_LIST" in line:
+        if "DIAGNOSTIC_CONTAINERLOGS_LIST:" in line:
             yaml_lines[index] = line + ' ' + container_logs
-        if "DIAGNOSTIC_KUBEOBJECTS_LIST" in line:
+        if "DIAGNOSTIC_KUBEOBJECTS_LIST:" in line:
             yaml_lines[index] = line + ' ' + kube_objects
         if "ENABLED_COLLECTORS:" in line:
             yaml_lines[index] = '  ENABLED_COLLECTORS: dns containerlogscontainerd helm kubeobjects networkoutbound'
