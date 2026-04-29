@@ -6776,6 +6776,83 @@ class AKSPreviewManagedClusterCreateDecoratorTestCase(unittest.TestCase):
         )
         self.assertEqual(dec_mc_1, ground_truth_mc_1)
 
+    def test_set_up_azure_monitor_profile_with_control_plane_metrics(self):
+        # Test that --enable-control-plane-metrics sets control_plane.enabled=True
+        dec_1 = AKSPreviewManagedClusterCreateDecorator(
+            self.cmd,
+            self.client,
+            {
+                "enable_azure_monitor_metrics": True,
+                "enable_control_plane_metrics": True,
+                "ksm_metric_labels_allow_list": "",
+                "ksm_metric_annotations_allow_list": "",
+            },
+            CUSTOM_MGMT_AKS_PREVIEW,
+        )
+        mc_1 = self.models.ManagedCluster(
+            location="test_location",
+            identity=self.models.ManagedClusterIdentity(type="SystemAssigned"),
+        )
+        dec_1.context.attach_mc(mc_1)
+        dec_mc_1 = dec_1.set_up_azure_monitor_profile(mc_1)
+        azure_monitor_profiles_1 = self.models.ManagedClusterAzureMonitorProfile(
+            metrics=self.models.ManagedClusterAzureMonitorProfileMetrics(
+                enabled=True,
+                kube_state_metrics=self.models.ManagedClusterAzureMonitorProfileKubeStateMetrics(
+                    metric_labels_allowlist="",
+                    metric_annotations_allow_list="",
+                ),
+                control_plane=self.models.ManagedClusterAzureMonitorProfileMetricsControlPlane(
+                    enabled=True,
+                ),
+            )
+        )
+        ground_truth_mc_1 = self.models.ManagedCluster(
+            location="test_location",
+            azure_monitor_profile=azure_monitor_profiles_1,
+            identity=self.models.ManagedClusterIdentity(type="SystemAssigned"),
+        )
+        self.assertEqual(dec_mc_1, ground_truth_mc_1)
+
+    def test_control_plane_metrics_requires_azure_monitor_metrics(self):
+        # Test that --enable-control-plane-metrics without --enable-azure-monitor-metrics raises error
+        dec_1 = AKSPreviewManagedClusterCreateDecorator(
+            self.cmd,
+            self.client,
+            {
+                "enable_azure_monitor_metrics": False,
+                "enable_control_plane_metrics": True,
+            },
+            CUSTOM_MGMT_AKS_PREVIEW,
+        )
+        mc_1 = self.models.ManagedCluster(
+            location="test_location",
+            identity=self.models.ManagedClusterIdentity(type="SystemAssigned"),
+        )
+        dec_1.context.attach_mc(mc_1)
+        with self.assertRaises(RequiredArgumentMissingError):
+            dec_1.context.get_enable_control_plane_metrics()
+
+    def test_control_plane_metrics_mutually_exclusive(self):
+        # Test that both enable and disable raises MutuallyExclusiveArgumentError
+        dec_1 = AKSPreviewManagedClusterCreateDecorator(
+            self.cmd,
+            self.client,
+            {
+                "enable_azure_monitor_metrics": True,
+                "enable_control_plane_metrics": True,
+                "disable_control_plane_metrics": True,
+            },
+            CUSTOM_MGMT_AKS_PREVIEW,
+        )
+        mc_1 = self.models.ManagedCluster(
+            location="test_location",
+            identity=self.models.ManagedClusterIdentity(type="SystemAssigned"),
+        )
+        dec_1.context.attach_mc(mc_1)
+        with self.assertRaises(MutuallyExclusiveArgumentError):
+            dec_1.context.get_enable_control_plane_metrics()
+
     def test_set_up_image_cleaner(self):
         dec_0 = AKSPreviewManagedClusterCreateDecorator(
             self.cmd,
@@ -11811,6 +11888,62 @@ class AKSPreviewManagedClusterUpdateDecoratorTestCase(unittest.TestCase):
             location="test_location",
         )
         self.assertEqual(dec_mc_1, ground_truth_mc_1)
+
+    def test_update_azure_monitor_profile_enable_control_plane_metrics(self):
+        # Test enabling control plane metrics on a cluster that already has metrics enabled
+        dec_1 = AKSPreviewManagedClusterUpdateDecorator(
+            self.cmd,
+            self.client,
+            {
+                "enable_azure_monitor_metrics": False,
+                "enable_control_plane_metrics": True,
+            },
+            CUSTOM_MGMT_AKS_PREVIEW,
+        )
+        mc_1 = self.models.ManagedCluster(
+            location="test_location",
+            identity=self.models.ManagedClusterIdentity(type="SystemAssigned"),
+            azure_monitor_profile=self.models.ManagedClusterAzureMonitorProfile(
+                metrics=self.models.ManagedClusterAzureMonitorProfileMetrics(
+                    enabled=True,
+                )
+            ),
+        )
+        dec_1.context.attach_mc(mc_1)
+        dec_mc_1 = dec_1.update_azure_monitor_profile(mc_1)
+        self.assertIsNotNone(dec_mc_1.azure_monitor_profile)
+        self.assertIsNotNone(dec_mc_1.azure_monitor_profile.metrics)
+        self.assertTrue(dec_mc_1.azure_monitor_profile.metrics.enabled)
+        self.assertIsNotNone(dec_mc_1.azure_monitor_profile.metrics.control_plane)
+        self.assertTrue(dec_mc_1.azure_monitor_profile.metrics.control_plane.enabled)
+
+    def test_update_azure_monitor_profile_disable_control_plane_metrics(self):
+        # Test disabling control plane metrics on a cluster that has metrics enabled
+        dec_1 = AKSPreviewManagedClusterUpdateDecorator(
+            self.cmd,
+            self.client,
+            {
+                "enable_azure_monitor_metrics": False,
+                "disable_control_plane_metrics": True,
+            },
+            CUSTOM_MGMT_AKS_PREVIEW,
+        )
+        mc_1 = self.models.ManagedCluster(
+            location="test_location",
+            identity=self.models.ManagedClusterIdentity(type="SystemAssigned"),
+            azure_monitor_profile=self.models.ManagedClusterAzureMonitorProfile(
+                metrics=self.models.ManagedClusterAzureMonitorProfileMetrics(
+                    enabled=True,
+                    control_plane=self.models.ManagedClusterAzureMonitorProfileMetricsControlPlane(
+                        enabled=True,
+                    ),
+                )
+            ),
+        )
+        dec_1.context.attach_mc(mc_1)
+        dec_mc_1 = dec_1.update_azure_monitor_profile(mc_1)
+        self.assertIsNotNone(dec_mc_1.azure_monitor_profile.metrics.control_plane)
+        self.assertFalse(dec_mc_1.azure_monitor_profile.metrics.control_plane.enabled)
 
     def test_update_enable_azure_monitor_logs(self):
         # Test enabling Azure Monitor logs when not currently enabled

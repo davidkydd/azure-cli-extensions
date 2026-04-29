@@ -2611,6 +2611,69 @@ class AKSPreviewManagedClusterContext(AKSManagedClusterContext):
         """
         return self._get_disable_azure_monitor_metrics(enable_validation=True)
 
+    def _get_enable_control_plane_metrics(self, enable_validation: bool = False) -> bool:
+        """Internal function to obtain the value of enable_control_plane_metrics.
+        This function supports the option of enable_validation. When enabled, if both
+        enable_control_plane_metrics and disable_control_plane_metrics are specified, raise a
+        MutuallyExclusiveArgumentError. If enable_control_plane_metrics is specified without
+        enable_azure_monitor_metrics (and metrics are not already enabled), raise a
+        RequiredArgumentMissingError.
+        :return: bool
+        """
+        enable_control_plane_metrics = self.raw_param.get("enable_control_plane_metrics", False)
+
+        if enable_validation:
+            if enable_control_plane_metrics and self._get_disable_control_plane_metrics(False):
+                raise MutuallyExclusiveArgumentError(
+                    "Cannot specify --enable-control-plane-metrics and "
+                    "--disable-control-plane-metrics at the same time."
+                )
+            if enable_control_plane_metrics:
+                metrics_already_enabled = False
+                if self.mc and self.mc.azure_monitor_profile and self.mc.azure_monitor_profile.metrics:
+                    metrics_already_enabled = self.mc.azure_monitor_profile.metrics.enabled
+                if not self._get_enable_azure_monitor_metrics(False) and not metrics_already_enabled:
+                    raise RequiredArgumentMissingError(
+                        "'--enable-control-plane-metrics' requires '--enable-azure-monitor-metrics'. "
+                        "Control plane metrics collection requires Azure Monitor Metrics to be enabled."
+                    )
+        return enable_control_plane_metrics
+
+    def get_enable_control_plane_metrics(self) -> bool:
+        """Obtain the value of enable_control_plane_metrics.
+        :return: bool
+        """
+        return self._get_enable_control_plane_metrics(enable_validation=True)
+
+    def _get_disable_control_plane_metrics(self, enable_validation: bool = False) -> bool:
+        """Internal function to obtain the value of disable_control_plane_metrics.
+        :return: bool
+        """
+        disable_control_plane_metrics = self.raw_param.get("disable_control_plane_metrics", False)
+
+        if enable_validation:
+            if disable_control_plane_metrics and self._get_enable_control_plane_metrics(False):
+                raise MutuallyExclusiveArgumentError(
+                    "Cannot specify --enable-control-plane-metrics and "
+                    "--disable-control-plane-metrics at the same time."
+                )
+            if disable_control_plane_metrics:
+                metrics_already_enabled = False
+                if self.mc and self.mc.azure_monitor_profile and self.mc.azure_monitor_profile.metrics:
+                    metrics_already_enabled = self.mc.azure_monitor_profile.metrics.enabled
+                if not self._get_enable_azure_monitor_metrics(False) and not metrics_already_enabled:
+                    raise RequiredArgumentMissingError(
+                        "'--disable-control-plane-metrics' requires '--enable-azure-monitor-metrics' "
+                        "or Azure Monitor Metrics to already be enabled on the cluster."
+                    )
+        return disable_control_plane_metrics
+
+    def get_disable_control_plane_metrics(self) -> bool:
+        """Obtain the value of disable_control_plane_metrics.
+        :return: bool
+        """
+        return self._get_disable_control_plane_metrics(enable_validation=True)
+
     def _get_enable_azure_monitor_app_monitoring(self, enable_validation=True) -> bool:
         """Internal function to obtain the value of enable_azure_monitor_app_monitoring.
         This function supports the option of enable_validation. When enabled, if both
@@ -4637,6 +4700,12 @@ class AKSPreviewManagedClusterCreateDecorator(AKSManagedClusterCreateDecorator):
                 metric_annotations_allow_list=str(ksm_metric_annotations_allow_list)
             ))
         mc.azure_monitor_profile.metrics.kube_state_metrics = kube_state_metrics
+
+        if self.context.get_enable_control_plane_metrics():
+            mc.azure_monitor_profile.metrics.control_plane = (
+                self.models.ManagedClusterAzureMonitorProfileMetricsControlPlane(enabled=True)
+            )
+
         self.context.set_intermediate("azuremonitormetrics_addon_enabled", True, overwrite_exists=True)
 
     def _setup_azure_monitor_app_monitoring(self, mc: ManagedCluster) -> None:
@@ -6915,6 +6984,29 @@ class AKSPreviewManagedClusterUpdateDecorator(AKSManagedClusterUpdateDecorator):
         # Handle disable Azure Monitor metrics
         if self.context.get_disable_azure_monitor_metrics():
             self._disable_azure_monitor_metrics(mc)
+
+        # Handle control plane metrics
+        if self.context.get_enable_control_plane_metrics():
+            if mc.azure_monitor_profile is None:
+                mc.azure_monitor_profile = self.models.ManagedClusterAzureMonitorProfile()  # pylint: disable=no-member
+            if mc.azure_monitor_profile.metrics is None:
+                mc.azure_monitor_profile.metrics = (
+                    self.models.ManagedClusterAzureMonitorProfileMetrics(enabled=True)  # pylint: disable=no-member
+                )
+            mc.azure_monitor_profile.metrics.control_plane = (
+                self.models.ManagedClusterAzureMonitorProfileMetricsControlPlane(enabled=True)  # pylint: disable=no-member
+            )
+
+        if self.context.get_disable_control_plane_metrics():
+            if mc.azure_monitor_profile is None:
+                mc.azure_monitor_profile = self.models.ManagedClusterAzureMonitorProfile()  # pylint: disable=no-member
+            if mc.azure_monitor_profile.metrics is None:
+                mc.azure_monitor_profile.metrics = (
+                    self.models.ManagedClusterAzureMonitorProfileMetrics(enabled=True)  # pylint: disable=no-member
+                )
+            mc.azure_monitor_profile.metrics.control_plane = (
+                self.models.ManagedClusterAzureMonitorProfileMetricsControlPlane(enabled=False)  # pylint: disable=no-member
+            )
 
         if self.context.get_enable_azure_monitor_app_monitoring():
             if mc.azure_monitor_profile is None:

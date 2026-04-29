@@ -598,6 +598,9 @@ helps['aks create'] = f"""
         - name: --enable-windows-recording-rules
           type: bool
           short-summary: Enable Windows Recording Rules when enabling the Azure Monitor Metrics addon
+        - name: --enable-control-plane-metrics
+          type: bool
+          short-summary: Enable collection of control plane metrics (API Server, etcd) through Azure Managed Prometheus. Requires --enable-azure-monitor-metrics.
         - name: --enable-azure-monitor-app-monitoring
           type: bool
           short-summary: Enable Azure Monitor Application Monitoring
@@ -1300,6 +1303,12 @@ helps['aks update'] = """
         - name: --enable-windows-recording-rules
           type: bool
           short-summary: Enable Windows Recording Rules when enabling the Azure Monitor Metrics addon
+        - name: --enable-control-plane-metrics
+          type: bool
+          short-summary: Enable collection of control plane metrics (API Server, etcd) through Azure Managed Prometheus. Requires --enable-azure-monitor-metrics or Azure Monitor Metrics to already be enabled.
+        - name: --disable-control-plane-metrics
+          type: bool
+          short-summary: Disable collection of control plane metrics through Azure Managed Prometheus.
         - name: --disable-azuremonitormetrics
           type: bool
           short-summary: Disable Azure Monitor Metrics Profile. This will delete all DCRA's associated with the cluster, any linked DCRs with the data stream = prometheus-stream and the recording rule groups created by the addon for this AKS cluster.
